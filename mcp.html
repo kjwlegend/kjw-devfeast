@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>光的 DevFest Workshop | Chrome DevTools MCP</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Serif+Display:opsz@9..40&display=swap');
+
+    :root {
+      --bg: #05070f;
+      --panel: rgba(14, 18, 36, 0.85);
+      --accent: #8ad8ff;
+      --accent-2: #8a7bff;
+      --text-main: #e9f1ff;
+      --text-sub: #9fb3d9;
+      --glow: 0 0 30px rgba(138, 120, 255, 0.25);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Space Grotesk', 'Helvetica Neue', Arial, sans-serif;
+      background: radial-gradient(circle at 20% 20%, rgba(138, 120, 255, 0.1), transparent 45%),
+                  radial-gradient(circle at 80% 0%, rgba(111, 196, 255, 0.12), transparent 40%),
+                  var(--bg);
+      color: var(--text-main);
+      min-height: 100vh;
+      overflow-x: hidden;
+      line-height: 1.6;
+    }
+
+    .stars, .stars::after, .stars::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        radial-gradient(2px 2px at 20% 30%, rgba(255,255,255,0.7), transparent),
+        radial-gradient(1.5px 1.5px at 70% 40%, rgba(255,255,255,0.6), transparent),
+        radial-gradient(1px 1px at 40% 80%, rgba(255,255,255,0.5), transparent),
+        radial-gradient(2px 2px at 80% 70%, rgba(255,255,255,0.6), transparent);
+      animation: twinkle 12s ease-in-out infinite alternate;
+      opacity: 0.7;
+      z-index: 0;
+    }
+
+    .stars::after {
+      animation-duration: 16s;
+      filter: blur(1px);
+      opacity: 0.6;
+    }
+
+    .stars::before {
+      animation-duration: 20s;
+      filter: blur(2px);
+      opacity: 0.5;
+    }
+
+    @keyframes twinkle {
+      from { transform: translateY(0px); opacity: 0.7; }
+      to { transform: translateY(-10px); opacity: 0.9; }
+    }
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      backdrop-filter: blur(12px);
+      background: linear-gradient(90deg, rgba(5,7,15,0.8), rgba(7,10,22,0.6));
+      border-bottom: 1px solid rgba(138, 120, 255, 0.25);
+    }
+
+    .nav {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      letter-spacing: 0.6px;
+      color: var(--text-main);
+      text-decoration: none;
+    }
+
+    .logo-mark {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, rgba(138, 120, 255, 0.3), rgba(138, 216, 255, 0.5));
+      box-shadow: 0 0 18px rgba(138, 216, 255, 0.4);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .logo-mark::after {
+      content: '';
+      position: absolute;
+      inset: 8px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.8);
+      mix-blend-mode: screen;
+      filter: blur(8px);
+    }
+
+    nav ul {
+      list-style: none;
+      display: flex;
+      gap: 18px;
+    }
+
+    nav a {
+      color: var(--text-sub);
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 14px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      transition: color 0.2s ease, background 0.2s ease, transform 0.2s ease;
+    }
+
+    nav a:hover, nav a.active {
+      color: var(--text-main);
+      background: rgba(138, 120, 255, 0.15);
+      transform: translateY(-1px);
+    }
+
+    main {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 40px 20px 80px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 28px;
+      padding: 50px;
+      border-radius: 28px;
+      background: linear-gradient(135deg, rgba(18, 23, 45, 0.95), rgba(10, 13, 26, 0.85));
+      border: 1px solid rgba(138, 120, 255, 0.35);
+      box-shadow: var(--glow);
+    }
+
+    .hero h1 {
+      font-size: 36px;
+      letter-spacing: -0.5px;
+      line-height: 1.2;
+      margin-bottom: 14px;
+    }
+
+    .hero h1 span {
+      color: var(--accent);
+      text-shadow: 0 0 10px rgba(138, 216, 255, 0.5);
+    }
+
+    .tagline {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: rgba(138, 120, 255, 0.15);
+      color: var(--text-main);
+      font-weight: 600;
+      font-size: 13px;
+      margin-bottom: 14px;
+    }
+
+    .hero p {
+      color: var(--text-sub);
+      margin-bottom: 16px;
+      font-size: 16px;
+    }
+
+    .cta-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 18px;
+      border-radius: 14px;
+      border: 1px solid rgba(138, 120, 255, 0.4);
+      color: var(--text-main);
+      text-decoration: none;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+      background: linear-gradient(135deg, rgba(138, 120, 255, 0.28), rgba(138, 216, 255, 0.22));
+      box-shadow: 0 10px 30px rgba(138, 216, 255, 0.15);
+      transition: transform 0.2s ease, box-shadow 0.2s ease, border 0.2s ease;
+    }
+
+    .btn.secondary {
+      background: rgba(255, 255, 255, 0.06);
+      box-shadow: none;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 16px 36px rgba(138, 216, 255, 0.2);
+      border-color: rgba(138, 216, 255, 0.5);
+    }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+    }
+
+    .meta {
+      padding: 14px 16px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(138, 120, 255, 0.2);
+      color: var(--text-sub);
+      font-size: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .meta strong {
+      color: var(--text-main);
+      font-size: 15px;
+    }
+
+    .section {
+      margin-top: 48px;
+      padding: 34px;
+      border-radius: 24px;
+      background: var(--panel);
+      border: 1px solid rgba(138, 120, 255, 0.25);
+      box-shadow: var(--glow);
+    }
+
+    .section h2 {
+      font-size: 26px;
+      margin-bottom: 12px;
+      letter-spacing: -0.3px;
+    }
+
+    .section h2 span {
+      color: var(--accent);
+    }
+
+    .section p {
+      color: var(--text-sub);
+      margin-bottom: 16px;
+      font-size: 15px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+      margin-top: 14px;
+    }
+
+    .card {
+      padding: 18px;
+      border-radius: 16px;
+      border: 1px solid rgba(138, 120, 255, 0.25);
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text-sub);
+      font-size: 14px;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.2s ease, border 0.2s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-3px);
+      border-color: rgba(138, 216, 255, 0.4);
+    }
+
+    .card strong {
+      color: var(--text-main);
+      display: block;
+      margin-bottom: 8px;
+      font-size: 16px;
+    }
+
+    .tag {
+      display: inline-flex;
+      padding: 6px 10px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 10px;
+      letter-spacing: 0.4px;
+    }
+
+    .split {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 18px;
+      margin-top: 12px;
+    }
+
+    .badge-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+
+    .badge {
+      padding: 8px 12px;
+      border-radius: 12px;
+      background: rgba(138, 216, 255, 0.12);
+      color: var(--text-main);
+      font-weight: 600;
+      font-size: 12px;
+    }
+
+    .links a {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(138, 120, 255, 0.25);
+      color: var(--text-main);
+      text-decoration: none;
+      background: rgba(255, 255, 255, 0.04);
+      font-weight: 600;
+      font-size: 13px;
+      transition: border 0.2s ease, transform 0.2s ease;
+    }
+
+    .links a:hover {
+      border-color: rgba(138, 216, 255, 0.5);
+      transform: translateY(-2px);
+    }
+
+    .profile {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+    }
+
+    .avatar {
+      width: 84px;
+      height: 84px;
+      border-radius: 20px;
+      object-fit: cover;
+      border: 1px solid rgba(138, 120, 255, 0.35);
+      box-shadow: var(--glow);
+      background: rgba(255,255,255,0.04);
+    }
+
+    footer {
+      margin: 48px 0 12px;
+      text-align: center;
+      color: var(--text-sub);
+      font-size: 13px;
+    }
+
+    @media (max-width: 768px) {
+      .hero {
+        padding: 28px;
+      }
+
+      .hero h1 {
+        font-size: 30px;
+      }
+
+      .section {
+        padding: 24px;
+      }
+
+      nav ul {
+        gap: 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="stars"></div>
+  <header>
+    <div class="nav">
+      <a class="logo" href="#home">
+        <span class="logo-mark"></span>
+        光的 DevFest Workshop
+      </a>
+      <nav>
+        <ul>
+          <li><a class="nav-link active" href="#home">首页</a></li>
+          <li><a class="nav-link" href="#gdg">GDG / DevFest</a></li>
+          <li><a class="nav-link" href="#mcp">DevTools MCP</a></li>
+          <li><a class="nav-link" href="#profile">关于光</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero" id="home">
+      <div>
+        <div class="tagline">Google DevFest Workshop · Chrome DevTools MCP Server</div>
+        <h1>黑色星空下的 <span>DevFest 旅程</span></h1>
+        <p>记录我在 Google DevFest Workshop 的学习与创作。本次主题聚焦 Chrome DevTools MCP Server：用模型能力驱动浏览器调试，让开发、自动化与创意在星空下相遇。</p>
+        <div class="cta-row">
+          <a class="btn" href="#mcp">探索 DevTools MCP</a>
+          <a class="btn secondary" href="#profile">联系光 · 微信 56349014</a>
+        </div>
+      </div>
+      <div class="meta-grid">
+        <div class="meta"><span>Workshop</span><strong>Google DevFest</strong></div>
+        <div class="meta"><span>主题</span><strong>Chrome DevTools MCP</strong></div>
+        <div class="meta"><span>官网</span><strong>kjwlabs.com</strong></div>
+        <div class="meta"><span>产品</span><strong>星辰塔罗 startarot.app</strong></div>
+      </div>
+    </section>
+
+    <section class="section" id="gdg">
+      <h2>GDG 与 DevFest <span>星际同行</span></h2>
+      <p>GDG（Google Developer Groups）是全球开发者的社区网络，DevFest 是年度的多城市盛会。Workshop 模式强调动手实践、技术互助与灵感碰撞，让每位参与者都能带着成果离开。</p>
+      <div class="grid">
+        <div class="card">
+          <div class="tag">社区</div>
+          <strong>开放与连接</strong>
+          GDG 汇聚工程师、设计师、产品人与创作者，分享技术，结交伙伴，构建有影响力的作品。
+        </div>
+        <div class="card">
+          <div class="tag">DevFest</div>
+          <strong>年度灵感加速器</strong>
+          DevFest 以城市为节点，打造本地化的技术节日，演讲、Codelab、Workshop 全面覆盖。
+        </div>
+        <div class="card">
+          <div class="tag">Workshop</div>
+          <strong>实战驱动</strong>
+          以真实问题为牵引，快速上手、快速迭代，输出可落地的作品或原型。
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="mcp">
+      <h2>Chrome DevTools MCP <span>实战笔记</span></h2>
+      <p>DevTools MCP Server 将模型的决策与浏览器的能力接通：用标准协议驱动页面导航、元素检查、网络与性能分析，为智能代理和自动化场景提供坚实的浏览器接口。</p>
+      <div class="split">
+        <div class="card">
+          <div class="tag">亮点</div>
+          <strong>我关注的特性</strong>
+          <ul style="margin: 8px 0 0 16px; color: var(--text-sub);">
+            <li>统一的 MCP 协议，接入多种模型与 IDE</li>
+            <li>基于 Chrome DevTools Protocol 的页面/元素控制</li>
+            <li>可观测性：网络、性能与日志实时获取</li>
+            <li>安全沙箱，便于教学、演示与自动化</li>
+          </ul>
+        </div>
+        <div class="card">
+          <div class="tag">收获</div>
+          <strong>Workshop 心得</strong>
+          通过 MCP Server，我可以用 AI 直接操控页面，完成调试、截图、抓包、脚本注入等任务；这让我在构建自动化测试、数据抓取和交互式教学时更加高效。
+          <div class="badge-row">
+            <div class="badge">AI × 浏览器</div>
+            <div class="badge">自动化调试</div>
+            <div class="badge">可视化性能分析</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="tag">资源</div>
+          <strong>继续深入</strong>
+          <div class="links" style="display: grid; gap: 10px; margin-top: 8px;">
+            <a href="https://github.com/ChromeDevTools/chrome-devtools-mcp" target="_blank" rel="noreferrer">GitHub · chrome-devtools-mcp</a>
+            <a href="https://developer.chrome.com/docs/devtools" target="_blank" rel="noreferrer">DevTools 官方文档</a>
+            <a href="https://github.com/modelcontextprotocol/servers" target="_blank" rel="noreferrer">Model Context Protocol Servers</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="profile">
+      <h2>关于光 <span>Full-Stack Builder</span></h2>
+      <div class="split">
+        <div class="card">
+          <div class="profile">
+            <img class="avatar" src="avatar.png" alt="光">
+            <div>
+              <strong>光 · 全栈开发师</strong>
+              <div style="color: var(--text-sub); font-size: 13px;">写代码 · 做产品 · 喜欢把想法变成真实</div>
+            </div>
+          </div>
+          <div class="badge-row" style="margin-top: 12px;">
+            <div class="badge">JavaScript / TypeScript / Node</div>
+            <div class="badge">产品策略</div>
+            <div class="badge">Automation</div>
+          </div>
+          <div style="margin-top: 12px; color: var(--text-sub); font-size: 14px;">
+            我相信工具能让创作更轻盈。DevTools MCP 让“和浏览器对话”成为可能，也让我在产品和工程之间切换得更快。
+          </div>
+        </div>
+        <div class="card">
+          <div class="tag">联系方式</div>
+          <strong>微信 56349014</strong>
+          <p style="margin: 6px 0;">官网：<a href="https://kjwlabs.com" target="_blank" rel="noreferrer" style="color: var(--accent); text-decoration: none;">kjwlabs.com</a></p>
+          <p style="margin: 0;">邮箱：hi@kjwlabs.com</p>
+          <div class="badge-row" style="margin-top: 10px;">
+            <div class="badge">欢迎交流</div>
+            <div class="badge">合作 / 共创</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="tag">产品</div>
+          <strong>星辰塔罗 · startarot.app</strong>
+          <p style="margin: 6px 0;">以塔罗与 AI 解读灵感，把夜空的故事呈现给每一位用户。</p>
+          <div class="links">
+            <a href="https://startarot.app" target="_blank" rel="noreferrer">访问产品</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      © 光 · Google DevFest Workshop · Chrome DevTools MCP  |  微信 56349014
+    </footer>
+  </main>
+
+  <script>
+    const navLinks = document.querySelectorAll('.nav-link');
+    const sections = [...navLinks].map(link => document.querySelector(link.getAttribute('href')));
+
+    function setActive() {
+      const scrollPos = window.scrollY + 120;
+      sections.forEach((section, idx) => {
+        const link = navLinks[idx];
+        if (!section) return;
+        const top = section.offsetTop;
+        const bottom = top + section.offsetHeight;
+        const active = scrollPos >= top && scrollPos < bottom;
+        link.classList.toggle('active', active);
+      });
+    }
+
+    navLinks.forEach(link => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        const target = document.querySelector(link.getAttribute('href'));
+        if (!target) return;
+        window.scrollTo({ top: target.offsetTop - 60, behavior: 'smooth' });
+      });
+    });
+
+    window.addEventListener('scroll', setActive);
+    setActive();
+  </script>
+</body>
+</html>
